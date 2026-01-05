@@ -1,0 +1,196 @@
+-- ===============================
+-- Delta Executor | Perfect VoidWare-style UI + 99 Nights in the Forest
+-- Safe client-side script
+-- ===============================
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local workspace = workspace
+
+-- Prevent duplicate GUI
+if playerGui:FindFirstChild("VoidDeltaUI") then
+    playerGui.VoidDeltaUI:Destroy()
+end
+
+-- Theme
+local theme = {
+    bg = Color3.fromRGB(12, 12, 14),
+    panel = Color3.fromRGB(20, 20, 22),
+    accent = Color3.fromRGB(0, 255, 170),
+    text = Color3.fromRGB(230, 230, 230)
+}
+
+-- Helper
+local function new(class, props)
+    local obj = Instance.new(class)
+    for k,v in pairs(props or {}) do
+        if k=="Parent" then obj.Parent=v else obj[k]=v end
+    end
+    return obj
+end
+
+-- ScreenGui
+local screenGui = new("ScreenGui",{Parent=playerGui, Name="VoidDeltaUI", ResetOnSpawn=false})
+new("UIScale",{Parent=screenGui, Scale=1})
+
+-- Main Frame
+local main = new("Frame",{Parent=screenGui, Size=UDim2.new(0,520,0,360), Position=UDim2.new(0.5,0,0.5,0), AnchorPoint=Vector2.new(0.5,0.5), BackgroundColor3=theme.bg, BorderSizePixel=0})
+new("UICorner",{Parent=main, CornerRadius=UDim.new(0,14)})
+
+-- Title
+local titleBar = new("Frame",{Parent=main, Size=UDim2.new(1,0,0,48), BackgroundTransparency=1})
+local titleLabel = new("TextLabel",{Parent=titleBar, Size=UDim2.new(0.7,0,1,0), Position=UDim2.new(0.02,0,0,0), BackgroundTransparency=1, Text="VOID • DeltaUI", TextColor3=theme.accent, Font=Enum.Font.GothamBold, TextSize=20, TextXAlignment=Enum.TextXAlignment.Left})
+local closeBtn = new("TextButton",{Parent=titleBar, Size=UDim2.new(0,36,0,28), Position=UDim2.new(1,-64,0.18,0), BackgroundColor3=Color3.fromRGB(35,35,40), Text="X", TextColor3=theme.text, Font=Enum.Font.GothamBold, TextSize=16, BorderSizePixel=0})
+new("UICorner",{Parent=closeBtn, CornerRadius=UDim.new(0,8)})
+
+local minimizeBtn = new("TextButton",{Parent=titleBar, Size=UDim2.new(0,36,0,28), Position=UDim2.new(1,-110,0.18,0), BackgroundColor3=theme.panel, Text="—", TextColor3=theme.text, Font=Enum.Font.GothamSemibold, TextSize=20, BorderSizePixel=0})
+new("UICorner",{Parent=minimizeBtn, CornerRadius=UDim.new(0,8)})
+
+-- Tabs
+local tabBar = new("Frame",{Parent=main, Size=UDim2.new(0,140,1, -56), Position=UDim2.new(0,12,0,56), BackgroundTransparency=1})
+local function makeTabButton(parent,text,yOffset)
+    local btn = new("TextButton",{Parent=parent,Size=UDim2.new(1,-6,0,46),Position=UDim2.new(0,3,0,yOffset),BackgroundColor3=Color3.fromRGB(18,18,19),Text=text,TextColor3=theme.text,Font=Enum.Font.GothamSemibold,TextSize=15,BorderSizePixel=0})
+    new("UICorner",{Parent=btn, CornerRadius=UDim.new(0,8)})
+    return btn
+end
+
+local tabHomeBtn = makeTabButton(tabBar,"Home",0)
+local tabToolsBtn = makeTabButton(tabBar,"Tools",56)
+local tabGameBtn = makeTabButton(tabBar,"Game",112)
+local tabSettingsBtn = makeTabButton(tabBar,"Settings",168)
+
+-- Pages
+local content = new("Frame",{Parent=main, Size=UDim2.new(1,-176,1,-56), Position=UDim2.new(0,164,0,56), BackgroundColor3=theme.panel, BorderSizePixel=0})
+new("UICorner",{Parent=content, CornerRadius=UDim.new(0,10)})
+
+local pages={}
+local function makePage(name)
+    local f = new("Frame",{Parent=content, Name=name, Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, Visible=false})
+    pages[name]=f
+    return f
+end
+
+local pageHome = makePage("HomePage")
+local pageTools = makePage("ToolsPage")
+local pageGame = makePage("GamePage")
+local pageSettings = makePage("SettingsPage")
+
+local function setActive(name)
+    for k,v in pairs(pages) do v.Visible=(k==name) end
+end
+setActive("HomePage")
+
+-- Home
+new("TextLabel",{Parent=pageHome,Size=UDim2.new(1,-30,0,80),Position=UDim2.new(0,16,0,8),BackgroundTransparency=1,Text="Welcome, "..player.Name.."!\nDelta UI (Void theme)",TextColor3=theme.text,Font=Enum.Font.GothamBold,TextSize=18,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Top})
+
+-- Tools Page (WalkSpeed/JumpPower/Respawn)
+local toolsContainer = new("ScrollingFrame",{Parent=pageTools, Size=UDim2.new(1,-32,1,-36), Position=UDim2.new(0,16,0,8), CanvasSize=UDim2.new(0,0,2,0), BackgroundTransparency=1, ScrollBarThickness=8})
+new("UIListLayout",{Parent=toolsContainer, Padding=UDim.new(0,8)})
+
+local function addTool(name,default,callback)
+    local frame = new("Frame",{Parent=toolsContainer,Size=UDim2.new(1,0,0,100),BackgroundColor3=Color3.fromRGB(18,18,19),BorderSizePixel=0})
+    new("UICorner",{Parent=frame,CornerRadius=UDim.new(0,10)})
+    new("TextLabel",{Parent=frame,Size=UDim2.new(1,-120,0,36),Position=UDim2.new(0,12,0,12),BackgroundTransparency=1,Text=name,Font=Enum.Font.GothamBold,TextSize=16,TextColor3=theme.text,TextXAlignment=Enum.TextXAlignment.Left})
+    local input = new("TextBox",{Parent=frame, Size=UDim2.new(0,120,0,30), Position=UDim2.new(0,12,0,48), Text=tostring(default), Font=Enum.Font.Gotham, TextSize=14, ClearTextOnFocus=false})
+    local btn = new("TextButton",{Parent=frame,Size=UDim2.new(0,92,0,36), Position=UDim2.new(1,-104,0,32), BackgroundColor3=theme.accent, Text="Run", Font=Enum.Font.GothamBold, TextSize=14, TextColor3=Color3.fromRGB(18,18,18), BorderSizePixel=0})
+    new("UICorner",{Parent=btn,CornerRadius=UDim.new(0,8)})
+    btn.MouseButton1Click:Connect(function() callback(input.Text) end)
+end
+
+-- WalkSpeed
+addTool("Set WalkSpeed",16,function(val)
+    local n = tonumber(val)
+    if n and player.Character and player.Character:FindFirstChildWhichIsA("Humanoid") then
+        player.Character:FindFirstChildWhichIsA("Humanoid").WalkSpeed=n
+    end
+end)
+
+-- JumpPower
+addTool("Set JumpPower",50,function(val)
+    local n = tonumber(val)
+    if n and player.Character and player.Character:FindFirstChildWhichIsA("Humanoid") then
+        player.Character:FindFirstChildWhichIsA("Humanoid").JumpPower=n
+    end
+end)
+
+-- Respawn
+local respawnBtn = new("TextButton",{Parent=toolsContainer, Size=UDim2.new(1,0,0,40), BackgroundColor3=theme.accent, Text="Respawn", Font=Enum.Font.GothamBold, TextSize=14, TextColor3=Color3.fromRGB(18,18,18), BorderSizePixel=0})
+new("UICorner",{Parent=respawnBtn,CornerRadius=UDim.new(0,8)})
+respawnBtn.MouseButton1Click:Connect(function() player:LoadCharacter() end)
+
+-- ==========================
+-- 99 Nights in the Forest Module
+-- ==========================
+local NITF_PLACEIDS = {79546208627805} -- main PlaceId
+local function inNITF() for _,id in pairs(NITF_PLACEIDS) do if game.PlaceId==id then return true end end return false end
+
+-- Wait until character is loaded
+spawn(function()
+    repeat wait() until player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
+    local function clearPage(page)
+        for _,v in pairs(page:GetChildren()) do if v:IsA("Frame") or v:IsA("TextLabel") or v:IsA("TextButton") then v:Destroy() end end
+    end
+
+    if inNITF() then
+        clearPage(pageGame)
+        local y=10
+        local function makeBtn(text,callback)
+            local f = new("TextButton",{Parent=pageGame,Size=UDim2.new(1,-30,0,40),Position=UDim2.new(0,15,0,y),BackgroundColor3=Color3.fromRGB(25,25,28),Text=text,TextColor3=Color3.fromRGB(0,255,170),Font=Enum.Font.GothamBold,TextSize=14,BorderSizePixel=0})
+            new("UICorner",{Parent=f,CornerRadius=UDim.new(0,8)})
+            f.MouseButton1Click:Connect(function() pcall(callback) end)
+            y=y+48
+        end
+
+        makeBtn("Print Game Info",function() print("99 Nights in the Forest Loaded","PlaceId:",game.PlaceId,"Player:",player.Name) end)
+        makeBtn("Show Backpack Items",function() for _,v in pairs(player.Backpack:GetChildren()) do print(v.Name) end end)
+        makeBtn("Find Campfires",function() for _,v in pairs(workspace:GetDescendants()) do if v.Name:lower():find("camp") then print(v.Name) end end end)
+        makeBtn("Find Chests",function() for _,v in pairs(workspace:GetDescendants()) do if v.Name:lower():find("chest") then print(v.Name) end end end)
+        makeBtn("Scan Enemies (Distance)",function()
+            local char=player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                for _,m in pairs(workspace:GetDescendants()) do
+                    if m:IsA("Model") and m:FindFirstChild("Humanoid") and m~=char then
+                        local hrp=m:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            local dist=(hrp.Position-char.HumanoidRootPart.Position).Magnitude
+                            if dist<300 then print(m.Name,"Distance:",math.floor(dist)) end
+                        end
+                    end
+                end
+            end
+        end)
+        makeBtn("Check Day / Night",function() for _,v in pairs(workspace:GetDescendants()) do if v.Name:lower():find("day") or v.Name:lower():find("night") then print("Found Time Object:",v.Name) end end end)
+        makeBtn("Refresh Game Data",function() print("Refreshing...") end)
+    else
+        clearPage(pageGame)
+        new("TextLabel",{Parent=pageGame,Size=UDim2.new(1,-30,0,60),Position=UDim2.new(0,15,0,20),BackgroundTransparency=1,Text="You are NOT in\n99 Nights in the Forest",TextColor3=Color3.fromRGB(255,80,80),Font=Enum.Font.GothamBold,TextSize=16})
+    end
+end)
+
+-- Tabs switch
+tabHomeBtn.MouseButton1Click:Connect(function() setActive("HomePage") end)
+tabToolsBtn.MouseButton1Click:Connect(function() setActive("ToolsPage") end)
+tabGameBtn.MouseButton1Click:Connect(function() setActive("GamePage") end)
+tabSettingsBtn.MouseButton1Click:Connect(function() setActive("SettingsPage") end)
+
+-- Close / Minimize
+closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+minimizeBtn.MouseButton1Click:Connect(function()
+    main.Size=main.Size==UDim2.new(0,520,0,360) and UDim2.new(0,320,0,64) or UDim2.new(0,520,0,360)
+end)
+
+-- RightShift toggle
+UserInputService.InputBegan:Connect(function(input,gp)
+    if gp then return end
+    if input.KeyCode==Enum.KeyCode.RightShift then
+        main.Visible=not main.Visible
+    end
+end)
+
+print("[VoidDeltaUI] Perfect Script Loaded")
